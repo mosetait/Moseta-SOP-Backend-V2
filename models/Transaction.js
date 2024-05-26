@@ -76,18 +76,9 @@ const transactionSchema = new mongoose.Schema({
 
 
 
-    productDistribution: [
-        {
-            product: {
-                type: String,
-               
-            },
-
-            quantity: {
-                type: Number
-            }
-        }
-    ],
+    productDistribution:{
+        type: Array
+    },
 
     totalAmount: {
         type: Number,

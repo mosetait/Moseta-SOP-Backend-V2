@@ -27,7 +27,7 @@ exports.loginStk = async (req, res) => {
 
   
       const user = await Stockist.findOne({ username }).select('+password').populate({path: "transactions"})
-      .populate({path: "profile"});
+      .populate({path: "profile"}).populate({path: "clients"});
   
       if (!user) {
         return res.status(404).json({
@@ -291,7 +291,7 @@ exports.getUserInfo = async (req, res) => {
     else if (req.user.accountType === "stockist"){
 
       user = await Stockist.findOne({ _id: id }).select('+password').populate({path: "transactions"})
-      .populate({path: "profile"});    
+      .populate({path: "profile"}).populate({path: "clients"});    
     }
 
     else{
