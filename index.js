@@ -67,9 +67,9 @@ lastDayOfMonthJob.start();
 
 
 
-// app.use("/" , (req,res) => {
-//     res.send("Server is running")
-// })
+app.use("/" , (req,res) => {
+    res.send("Server is running")
+})
 
 
 
