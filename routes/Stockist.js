@@ -28,7 +28,7 @@ router.route("/delete-client").delete(auth , isStockist , deleteClient);
 
 
 // get
-router.route("/get-stock").get(auth,isStockist,getStock)
+router.route("/get-stock-stockist").get(auth,isStockist,getStock)
 router.route("/get-clients").get(auth , isStockist, getClients)
 
 

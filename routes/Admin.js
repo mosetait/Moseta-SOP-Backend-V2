@@ -2,7 +2,7 @@ const express = require("express");
 const { auth, isAdmin } = require("../middleware/auth");
 const { signUpAdmin, loginAdmin, logout, getUserInfo } = require("../controllers/Auth");
 const { BalanceTransferAdmin, stockTransferAdmin } = require("../controllers/Admin/transaction");
-const { getAllStockistInfo, getStockistInfo, getAllNotifications } = require("../controllers/Admin/get");
+const { getAllStockistInfo, getStockistInfo, getAllNotifications, getStockAdmin } = require("../controllers/Admin/get");
 const { createProduct, createCategory, updateCategory, deleteCategory, updateProduct, deleteProduct } = require("../controllers/Admin/product");
 const { signUpStk, deleteStockist } = require("../controllers/Admin/stockist");
 const router = express.Router();
@@ -30,6 +30,7 @@ router.route("/get-all-stockists").get(auth , isAdmin , getAllStockistInfo);
 router.route("/get-single-stockist/:id").get(auth , isAdmin , getStockistInfo);
 router.route("/get-all-notifications").get(auth , isAdmin , getAllNotifications);
 router.route("/load-user").get(auth,getUserInfo);
+router.route("/get-stock-admin").get(auth , isAdmin , getStockAdmin);
 
 
 

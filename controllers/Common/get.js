@@ -1,7 +1,8 @@
 const asyncHandler = require("../../middleware/asyncHandler");
 const Category = require("../../models/Category");
 const Product = require("../../models/Product");
-
+const fs = require('fs');
+const path = require('path');
 
 
 
@@ -49,7 +50,7 @@ exports.getAllProducts = asyncHandler( async (req,res) => {
 
 // fetch proof
 exports.fetchProof = asyncHandler( async (req,res) => {
-
+        console.log("first")
         const { fileName } = req.body;
 
         if(!fileName){
@@ -60,7 +61,7 @@ exports.fetchProof = asyncHandler( async (req,res) => {
         }
 
         // Construct the absolute path to the file
-        const absolutePath = path.join(__dirname, '..', 'uploads', fileName);
+        const absolutePath = path.join(__dirname, '../..', 'uploads', fileName);
 
 
         // Check if the file exists
@@ -83,6 +84,10 @@ exports.fetchProof = asyncHandler( async (req,res) => {
     }
 
 )
+
+
+
+
 
 // Function to determine content type based on file extension
 function getFileContentType(fileName) {

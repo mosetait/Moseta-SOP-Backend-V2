@@ -285,6 +285,7 @@ exports.clientTransferStk = asyncHandler( async (req,res) => {
 // !-- commit a ST transaction , inlcude client in st transaction
 // Commit a ST transaction, include client in st transaction
 exports.stockTransferStk = asyncHandler(async (req, res) => {
+  
     // Convert the flat request body structure to a nested one
     const nestedBody = convertToNestedObject(req.body);
   
@@ -425,6 +426,7 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
       transportationCharges
     };
 
+    console.log(transactionObj)
   
     // Create a new transaction
     const newTransaction = await Transaction.create(transactionObj);

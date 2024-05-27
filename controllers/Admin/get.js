@@ -1,7 +1,7 @@
 const Stockist = require("../../models/Stockist");
 const Notifications = require("../../models/Notification")
 const asyncHandler = require("../../middleware/asyncHandler");
-
+const Category = require("../../models/Category");
 
 
 // get all stockist info
@@ -67,5 +67,22 @@ exports.getAllNotifications = asyncHandler( async (req,res) => {
             message: "Notifications fetched successfully",
             notifications
         })
+
+})
+
+
+
+
+
+// get stock
+exports.getStockAdmin = asyncHandler( async (req,res) => {
+
+
+    const stock = await Category.find().populate({path: "products"});
+
+    return res.status(200).json({
+        message: "Stock fetched successfully",
+        stock
+    })
 
 })

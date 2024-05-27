@@ -24,7 +24,7 @@ exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
             })
         }
 
-        if(!req.files || !req.files.proof){
+        if(!req.files){
             return res.status(401).json({
                 success: false,
                 meessage: "Please upload Balance Transfer proof."
@@ -32,7 +32,7 @@ exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
         }
 
 
-        const {proof} = req.files;
+        const proof = req?.files?.file;
 
 
         const stockist = await Stockist.findOne({_id: stockistId}).populate({path: "profile"});
@@ -143,168 +143,174 @@ exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
 
 
 // commit a ST transaction
-exports.stockTransferAdmin = asyncHandler( async (req,res) => {
+exports.stockTransferAdmin = asyncHandler(async (req, res) => {
 
-        const {totalAmount , documentNo , stockistId } = req.body;
+    // Convert the flat request body structure to a nested one
+    const nestedBody = convertToNestedObject(req.body);
 
-        const newStkItems = [
-            {   
-                category: "66447f4b51b83411ed21cabd",
-                products: [
-                    {
-                    product: "6644ad4db1d1ce7a7d17c945",
-                    quantity: 1
-                    },
-                    {
-                    product: "6644ad9db1d1ce7a7d17c94d",
-                    quantity: 2
-                    },
-                    {
-                    product: "6644adcab1d1ce7a7d17c953",
-                    quantity: 3
-                    },
-                ], 
+    const { 
+        totalAmount, 
+        documentNo, 
+        products,
+        stockistId
+    } = nestedBody;
 
-            },
-            {   
-                category: "66447f6d51b83411ed21cac1",
-                products: [
-                    {
-                    product: "6644af29b1d1ce7a7d17c95a",
-                    quantity: 1
-                    },
-                    {
-                    product: "6644af7cb1d1ce7a7d17c960",
-                    quantity: 2
-                    },
-                    {
-                    product: "6644afaab1d1ce7a7d17c966",
-                    quantity: 3
-                    },
-                ], 
-
-            }
-        ];
-        
-        // Validation
-        if(!totalAmount || !documentNo || !stockistId ){
-            return res.status(401).json({
-                success: false,
-                meessage: "Please fill required fields."
-            })
-        }
-
-        if(!req.files){
-            return res.status(401).json({
-                success: false,
-                meessage: "Please upload Stock Transfer proof."
-            })
-        }
-
-        const {proof} = req.files;
-
-
-        const stockist = await Stockist.findOne({_id: stockistId}).populate({path: "profile"});
-
-        if(!stockist){
-            return res.status(401).json({
-                success: false,
-                message: "User not found. Please login again."
-            })
-        }
-
-        const admin = await Admin.findOne({_id: req.user.id});
-
-        if(!admin){
-            return res.status(404).json({
-                message : "Admin not found please login again",
-                success: false
-            })
-        }
-
-
-
-        // Save the file to the server
-        const fileName = `balance_transfer_proof_${Date.now()}_${proof.name}`;
-        const uploadPath = `uploads/${fileName}`;
-        proof.mv(uploadPath, (err) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({
-                    success: false,
-                    message: "Error while saving file to server."
-                });
-            }
+    // Validation
+    if (!totalAmount || !documentNo || !stockistId) {
+        return res.status(401).json({
+            success: false,
+            message: "Please fill required fields."
         });
+    }
 
-        // creating transaction variable
-        const transactionObj = {
-            type: "ST",
-            debitFor: "admin",
-            creditFor: "stockist",
-            totalAmount,
-            stockist: stockist._id,
-            admin: admin._id,
-            sender: "admin",
-            receiver: "stockist",
-            documentNo,
-            file: {
-                name: fileName,
-                path: uploadPath
-            },
-            productDistribution: newStkItems
-        }
+    if (!req.files) {
+        return res.status(401).json({
+            success: false,
+            message: "Please upload Stock Transfer proof."
+        });
+    }
 
+    const proof = req?.files?.file;
 
-        // creating a transaction
-        const newTransaction = await Transaction.create(transactionObj);
+    const stockist = await Stockist.findOne({ _id: stockistId }).populate({ path: "profile" });
 
+    if (!stockist) {
+        return res.status(401).json({
+            success: false,
+            message: "User not found. Please login again."
+        });
+    }
 
-        // add transaction to admin
+    const admin = await Admin.findOne({ _id: req.user.id });
 
-        // Find if there's an existing entry for the current stockist
-        const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(stockistId));
+    if (!admin) {
+        return res.status(404).json({
+            success: false,
+            message: "Admin not found please login again"
+        });
+    }
 
-        if (existingEntry) {
-            // If an entry already exists, push the new transaction to its transactions array
-            existingEntry.transactions.push(newTransaction._id);
-        } 
-        else {
-            // If no entry exists, create a new entry
-            admin.transactions.push({
-                stockist: req.user.id,
-                transactions: [newTransaction._id]
+    // Save the file to the server
+    const fileName = `balance_transfer_proof_${Date.now()}_${proof.name}`;
+    const uploadPath = `uploads/${fileName}`;
+    proof.mv(uploadPath, (err) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({
+                success: false,
+                message: "Error while saving file to server."
             });
         }
+    });
 
-        await admin.save(); // Save the changes to the admin object
-        
+    // Creating transaction object
+    const transactionObj = {
+        type: "ST",
+        debitFor: "admin",
+        creditFor: "stockist",
+        totalAmount,
+        stockist: stockist._id,
+        admin: admin._id,
+        sender: "admin",
+        receiver: "stockist",
+        documentNo,
+        file: {
+            name: fileName,
+            path: uploadPath
+        },
+        productDistribution: products
+    };
+
+    // Creating a transaction
+    const newTransaction = await Transaction.create(transactionObj);
+
+    // Add transaction to admin
+    const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(stockistId));
+
+    if (existingEntry) {
+        existingEntry.transactions.push(newTransaction._id);
+    } else {
+        admin.transactions.push({
+            stockist: req.user.id,
+            transactions: [newTransaction._id]
+        });
+    }
+
+    await admin.save();
+
+    // Add transaction to stockist
+    stockist.transactions.push(newTransaction._id);
+
+    // Update stockist stock
+    products.forEach(newCategory => {
+        const existingCategory = stockist.stock.find(category => String(category.category._id) === String(newCategory.category));
+
+        if (existingCategory) {
+            newCategory.products.forEach(newProduct => {
+                const existingProduct = existingCategory.products.find(product => String(product.product._id) === String(newProduct.product._id));
+
+                if (existingProduct) {
+                    // Update quantity if product exists
+                    existingProduct.quantity = Number(existingProduct.quantity) + Number(newProduct.quantity);
+                } else {
+                    // Add new product if it doesn't exist
+                    existingCategory.products.push(newProduct);
+                }
+            });
+        } else {
+            // Add new category with products if category doesn't exist
+            stockist.stock.push({
+                category: newCategory.category,
+                products: newCategory.products
+            });
+        }
+    });
+
+    await stockist.save();
 
 
-        // add transaction to stockist
-        stockist.transactions.push(newTransaction._id);
-        stockist.stock = stockist.stock.concat(newStkItems);
-        await stockist.save();
-        
+    // Send email with the attached PDF (or any file)
+    await mailSender(
+        process.env.MAIL_USER, 
+        `NEW Client Transfer Receipt Transaction`,
+        `
+            Name: ${stockist.name} \n
+            Sender: Admin \n
+            Receiver: Stockist \n
+        `, 
+        proof
+    );
 
-        // Send email with the attached PDF (or any file)
-        await mailSender(
-            process.env.MAIL_USER, 
-            `NEW Client Transfer Receipt Transaction`,
-
-            `
-                Name: ${stockist.name} \n
-                Sender: Admin \n
-                Receiver: Stockist \n
-            `, 
-            proof
-        );
-
-        return res.status(200).json({
-            success: true,
-            message: "Transaction committed",
-            newTransaction
-        })
+    
+    return res.status(200).json({
+        success: true,
+        message: "Transaction committed",
+        newTransaction
+    });
+});
 
 
-})
+
+
+
+
+function convertToNestedObject(data) {
+    const result = {};
+  
+    Object.keys(data).forEach(key => {
+      const value = data[key];
+      const keys = key.split(/[\[\]]/).filter(k => k); // Split the keys and filter out empty strings
+      keys.reduce((acc, k, index) => {
+        if (index === keys.length - 1) {
+          acc[k] = value; // Set the value at the deepest level
+        } else {
+          if (!acc[k]) {
+            acc[k] = isNaN(keys[index + 1]) ? {} : []; // Create an array or object based on the next key
+          }
+          return acc[k]; // Return the next level to be processed
+        }
+      }, result);
+    });
+  
+    return result;
+}

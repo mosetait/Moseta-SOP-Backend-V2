@@ -23,6 +23,8 @@ exports.signUpStk = asyncHandler( async (req,res) => {
 
     } = req.body;
 
+console.log(req.body)
+
     // Check if All Details are there or not
     if(special){
 

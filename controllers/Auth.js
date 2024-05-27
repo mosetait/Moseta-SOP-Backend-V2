@@ -26,8 +26,18 @@ exports.loginStk = async (req, res) => {
       }
 
   
-      const user = await Stockist.findOne({ username }).select('+password').populate({path: "transactions"})
-      .populate({path: "profile"}).populate({path: "clients"});
+      const user = await Stockist.findOne({ username })
+      .select('+password')
+      .populate({
+        path: 'transactions',
+        populate: {
+          path: 'client'  // This will populate the client field within each transaction
+        }
+      })
+      .populate({ path: 'profile' })
+      .populate({ path: 'clients' });
+    
+    
   
       if (!user) {
         return res.status(404).json({
@@ -171,7 +181,15 @@ exports.loginAdmin = async (req, res) => {
       const { username, password } = req.body;
 
   
-      const user = await Admin.findOne({ username }).select('+password');
+      const user = await Admin.findOne({ username })
+      .select('+password').populate({path: "stockists"})
+      .populate({
+        path: 'transactions',
+        populate: {
+          path: 'client'  // This will populate the client field within each transaction
+        }
+      });
+
   
       if (!user) {
         return res.status(404).json({
@@ -284,14 +302,29 @@ exports.getUserInfo = async (req, res) => {
 
     if(req.user.accountType === "admin"){
 
-       user = await Admin.findById(id).select('-password'); // Exclude password from the response
+       user = await Admin.findById(id)
+      .select('+password').populate({path: "stockists"})
+      .populate({
+        path: 'transactions',
+        populate: {
+          path: 'client'  // This will populate the client field within each transaction
+        },
+      });
 
     }
 
     else if (req.user.accountType === "stockist"){
 
-      user = await Stockist.findOne({ _id: id }).select('+password').populate({path: "transactions"})
-      .populate({path: "profile"}).populate({path: "clients"});    
+      user = await Stockist.findOne({ _id: id })
+      .select('+password')
+      .populate({
+        path: 'transactions',
+        populate: {
+          path: 'client'  
+        }
+      })
+      .populate({ path: 'profile' })
+      .populate({ path: 'clients' });    
     }
 
     else{

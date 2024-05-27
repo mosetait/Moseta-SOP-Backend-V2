@@ -61,7 +61,7 @@ exports.isAdmin = async (req, res, next) => {
 	try {
 
 		const userDetails = await Admin.findOne({ username: req.user.username });
-
+        
         if(!userDetails){
             return res.status(404).json({
                 success:false,
@@ -95,7 +95,6 @@ exports.isStockist = async (req, res, next) => {
 	try {
 
 		const userDetails = await Stockist.findOne({ username: req.user.username });
-
         if(!userDetails){
             return res.status(404).json({
                 success:false,
