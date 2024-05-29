@@ -3,8 +3,8 @@ const Admin = require("../../models/Admin");
 const Transaction = require("../../models/Transaction");
 const mailSender = require("../../utils/mailSender");
 const asyncHandler = require("../../middleware/asyncHandler");
-
-
+const RejectedTransactions = require("../../models/RejectedTransactions");
+const Client = require("../../models/Client")
 
 
 
@@ -80,7 +80,8 @@ exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
             file: {
                 name: fileName,
                 path: uploadPath
-            }
+            },
+            transactionStatus: "approved"
         }
 
         // creating a transaction
@@ -218,12 +219,16 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
             name: fileName,
             path: uploadPath
         },
-        productDistribution: products
+        productDistribution: products,
+        transactionStatus: "approved"
     };
 
+  
+    
     // Creating a transaction
     const newTransaction = await Transaction.create(transactionObj);
 
+  
     // Add transaction to admin
     const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(stockistId));
 
@@ -243,10 +248,13 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
 
     // Update stockist stock
     products.forEach(newCategory => {
+
         const existingCategory = stockist.stock.find(category => String(category.category._id) === String(newCategory.category));
 
         if (existingCategory) {
             newCategory.products.forEach(newProduct => {
+                
+
                 const existingProduct = existingCategory.products.find(product => String(product.product._id) === String(newProduct.product._id));
 
                 if (existingProduct) {
@@ -294,6 +302,8 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
 
 
 
+
+
 function convertToNestedObject(data) {
     const result = {};
   
@@ -314,3 +324,242 @@ function convertToNestedObject(data) {
   
     return result;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+// approve a transaction
+exports.confirmTransaction = asyncHandler(async (req, res) => {
+
+    const { transactionId, transactionStatus, rejectionReason } = req.body;
+
+    if (!transactionId) {
+        return res.status(401).json({
+            success: false,
+            message: "Please provide transaction id."
+        });
+    }
+
+    // find transaction
+    const transaction = await Transaction.findById(transactionId)
+    .populate('admin')
+    .populate('stockist')
+    .populate('client');
+    
+
+
+    if (!transaction) {
+        return res.status(404).json({
+            success: false,
+            message: "Transaction not found."
+        });
+    }
+
+    // find stockist
+    const stockist = await Stockist.findById(transaction.stockist);
+
+    if (!stockist) {
+        return res.status(404).json({
+            message: "Stockist not found",
+            success: false
+        });
+    }
+
+    const admin = await Admin.findById({_id: stockist.admin});
+
+    if (!admin) {
+        return res.status(404).json({
+            message: "Admin not found",
+            success: false
+        });
+    }
+
+    let client;
+    // find client
+    if(transaction.type == "CT" || transaction.type == "ST"){
+
+        client = await Client.findById({_id: transaction.client._id});
+
+        if(!client) {
+            return res.status(404).json({
+                message: "Client not found.",
+                success: false
+            })
+        }
+    }
+    
+
+
+    if(transactionStatus == "approved"){
+
+        // check transaction type
+        if(transaction.type == "BL" || transaction.type == "CT"){
+  
+            await transaction.updateOne({transactionStatus: "approved"});
+
+            // add transaction to admin
+            const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(stockist._id));
+            if (existingEntry) {
+                existingEntry.transactions.push(transaction._id);
+            } else {
+                admin.transactions.push({
+                    stockist: req.user.id,
+                    transactions: [transaction._id]
+                });
+            }
+
+            if(transaction.type === "CT"){
+                // Push transaction to client
+                client.transactions.push(transaction._id);
+                await client.save();
+            }
+
+            await admin.save();
+            await transaction.save();
+        }
+
+
+        else if(transaction.type = "ST"){
+
+   
+            // Calculate profit
+            const baseAmount1 = Math.floor(transaction.totalAmount * (100 / 112));  // Amount without tax
+            const baseAmount2 = Math.floor(baseAmount1 / 1.11);
+            const finalProfit = Math.floor(baseAmount1 - baseAmount2);
+
+
+            const products = transaction.productDistribution;
+
+
+
+            // Remove items from stockist's stock
+            for (const productCategory of products) {
+
+
+            const { category, products: categoryProducts } = productCategory;
+
+            const stockItem = stockist.stock.find(item => String(item.category) === category);
+                
+            if (!stockItem) {
+                return res.status(400).json({
+                success: false,
+                message: `No stock found for category ${category}`
+                });
+            }
+        
+            for (const { product, quantity } of categoryProducts) {
+                
+                const productIndex = stockItem.products.findIndex(p => String(p.product) === product._id);
+
+
+                if (productIndex !== -1) {
+                const currentQuantity = stockItem.products[productIndex].quantity;
+
+                if (currentQuantity < quantity) {
+                    return res.status(400).json({
+                    success: false,
+                    message: `Insufficient quantity for product ${product}`
+                    });
+                }
+                stockItem.products[productIndex].quantity = stockItem.products[productIndex].quantity - quantity;
+                if (stockItem.products[productIndex].quantity < 0) {
+                    stockItem.products[productIndex].quantity = 0;
+                }
+                } else {
+                return res.status(400).json({
+                    success: false,
+                    message: `Product ${String(product)} not found in stock`
+                });
+                }
+            }
+            }
+
+
+
+            // add transaction to admin
+            const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(stockist._id));
+            if (existingEntry) {
+                existingEntry.transactions.push(transaction._id);
+            } else {
+                admin.transactions.push({
+                    stockist: req.user.id,
+                    transactions: [transaction._id]
+                });
+            }
+
+            // calculate profit of stockist
+            const profit = stockist.profitThisMonth + finalProfit;
+            await stockist.updateOne({profitThisMonth : profit});
+
+            // Push transaction to client
+            client.transactions.push(transaction._id);
+
+            await client.save();
+            await stockist.save();
+            await admin.save();
+
+            await transaction.updateOne({transactionStatus: "approved"});
+
+        }
+
+    }
+
+    if(transactionStatus == "rejected") {
+
+        const rejectTransaction = {
+            type: transaction?.type,
+            debitFor: transaction?.debitFor,
+            creditFor: transaction?.creditFor,
+            totalAmount: transaction?.totalAmount,
+            stockist: transaction?.stockist._id,
+            admin: transaction?.admin._id,
+            client: transaction?.client._id,
+            sender: transaction?.sender,
+            receiver: transaction?.receiver,
+            documentNo: transaction?.documentNo,
+            file: {
+              name: transaction?.file?.name,
+              path: transaction?.file?.path
+            },
+            productDistribution: transaction?.productDistribution,
+            installationCharges: transaction?.installationCharges || "",
+            transportationCharges : transaction?.transportationCharges || "",
+            rejectionReason: rejectionReason
+        }
+
+        // create new rejected transaction
+        const newRejectedTransaction = await RejectedTransactions.create(rejectTransaction);
+
+        // push that transaction in stockist's rejected transactions array
+        stockist.rejectedTransactions.push(newRejectedTransaction._id);
+
+        // remove transaction from stockist's transaction array
+        await Stockist.updateOne(
+            { _id: stockist._id },
+            { $pull: { transactions: transaction._id } }
+          );
+          
+        await stockist.save();
+
+        // delete transaction
+        await Transaction.findByIdAndDelete(transaction._id);
+
+    }
+
+    return res.status(200).json({
+        message: `Transaction ${transactionStatus}`,
+        success: true
+    });
+});
+
+
+
+

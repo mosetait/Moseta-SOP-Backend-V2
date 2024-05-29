@@ -35,7 +35,13 @@ exports.loginStk = async (req, res) => {
         }
       })
       .populate({ path: 'profile' })
-      .populate({ path: 'clients' });
+      .populate({ path: 'clients' })
+      .populate({
+        path: 'rejectedTransactions',
+        populate: {
+          path: 'client'  // This will populate the client field within each transaction
+        }
+      });
     
     
   

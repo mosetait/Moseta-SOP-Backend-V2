@@ -15,6 +15,15 @@ const stockItemSchema = new mongoose.Schema({
         },
         quantity: {
             type: Number,
+        },
+        priceBeforeDiscount: {
+            type: Number
+        },
+        priceAfterDiscount: {
+            type: Number
+        },
+        discount: {
+            type: Number
         }
     }]
 });
@@ -37,6 +46,12 @@ const stockistSchema = new mongoose.Schema({
         type: [mongoose.Schema.Types.ObjectId],
         ref: "Transaction"
     },
+
+    rejectedTransactions: {
+        type: [mongoose.Schema.Types.ObjectId],
+        ref: "RejectedTransaction"
+    },
+
     profile: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Profile"

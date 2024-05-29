@@ -88,38 +88,27 @@ exports.BalanceTransferStk = asyncHandler( async (req,res) => {
             file: {
                 name: fileName,
                 path: uploadPath
-            }
+            },
+            transactionStatus: "pending"
         };
 
         // creating a transaction
         const newTransaction = await Transaction.create(transactionObj);
 
-        // add transaction to admin
-        const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(req.user.id));
-        if (existingEntry) {
-            existingEntry.transactions.push(newTransaction._id);
-        } else {
-            admin.transactions.push({
-                stockist: req.user.id,
-                transactions: [newTransaction._id]
-            });
-        }
-        await admin.save();
-
         // add transaction to stockist
         stockist.transactions.push(newTransaction._id);
         await stockist.save();
 
-        // Send email with the attached PDF (or any file)
-        await mailSender(
-            process.env.MAIL_USER,
-            `NEW Balance Transfer Transaction`,
-            `
-                Name: ${stockist.profile.name}
-                State: ${stockist.profile.address}
-            `,
-            proof
-        );
+        // // Send email with the attached PDF (or any file)
+        // await mailSender(
+        //     process.env.MAIL_USER,
+        //     `NEW Balance Transfer Transaction`,
+        //     `
+        //         Name: ${stockist.profile.name}
+        //         State: ${stockist.profile.address}
+        //     `,
+        //     proof
+        // );
 
         return res.status(200).json({
             success: true,
@@ -217,53 +206,32 @@ exports.clientTransferStk = asyncHandler( async (req,res) => {
                 name: fileName,
                 path: uploadPath
             },
-            client: client._id
+            client: client._id,
+            transactionStatus: "pending"
         }
 
         // creating a transaction
         const newTransaction = await Transaction.create(transactionObj);
 
 
-        // add transaction to admin
-
-        // Find if there's an existing entry for the current stockist
-        const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(req.user.id));
-
-        if (existingEntry) {
-            // If an entry already exists, push the new transaction to its transactions array
-            existingEntry.transactions.push(newTransaction._id);
-        } else {
-            // If no entry exists, create a new entry
-            admin.transactions.push({
-                stockist: req.user.id,
-                transactions: [newTransaction._id]
-            });
-        }
-
-        await admin.save(); // Save the changes to the admin object
-        
-
-
         // add transaction to stockist
         stockist.transactions.push(newTransaction._id);
         await stockist.save();
 
-        // Push transaction to client
-        client.transactions.push(newTransaction._id);
-        await client.save();
+
         
 
-        // Send email with the attached PDF (or any file)
-        await mailSender(
-            process.env.MAIL_USER, 
-            `NEW Client Transfer Receipt Transaction`,
+        // // Send email with the attached PDF (or any file)
+        // await mailSender(
+        //     process.env.MAIL_USER, 
+        //     `NEW Client Transfer Receipt Transaction`,
 
-            `
-                Name: ${stockist.profile.name}
-                State: ${stockist.profile.address}
-            `, 
-            proof
-        );
+        //     `
+        //         Name: ${stockist.profile.name}
+        //         State: ${stockist.profile.address}
+        //     `, 
+        //     proof
+        // );
 
         return res.status(200).json({
             success: true,
@@ -350,47 +318,7 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
       });
     }
   
-    // Calculate profit
-    const baseAmount1 = Math.floor(totalAmount * (100 / 112));  // Amount without tax
-    const baseAmount2 = Math.floor(baseAmount1 / 1.11);
-    const finalProfit = Math.floor(baseAmount1 - baseAmount2);
-  
-    // Remove items from stockist's stock
-    for (const productCategory of products) {
-      const { category, products: categoryProducts } = productCategory;
-      const stockItem = stockist.stock.find(item => String(item.category) === category);
-        
-      if (!stockItem) {
-        return res.status(400).json({
-          success: false,
-          message: `No stock found for category ${category}`
-        });
-      }
-  
-      for (const { product, quantity } of categoryProducts) {
-        
-        const productIndex = stockItem.products.findIndex(p => String(p.product) === product._id);
-  
-        if (productIndex !== -1) {
-          const currentQuantity = stockItem.products[productIndex].quantity;
-          if (currentQuantity < quantity) {
-            return res.status(400).json({
-              success: false,
-              message: `Insufficient quantity for product ${product}`
-            });
-          }
-          stockItem.products[productIndex].quantity -= quantity;
-          if (stockItem.products[productIndex].quantity < 0) {
-            stockItem.products[productIndex].quantity = 0;
-          }
-        } else {
-          return res.status(400).json({
-            success: false,
-            message: `Product ${String(product)} not found in stock`
-          });
-        }
-      }
-    }
+
   
     // Save the file to the server
     const fileName = `balance_transfer_proof_${Date.now()}_${proof.name}`;
@@ -426,51 +354,35 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
       transportationCharges
     };
 
-    console.log(transactionObj)
   
     // Create a new transaction
     const newTransaction = await Transaction.create(transactionObj);
   
-    // Add transaction to admin
-    const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(req.user.id));
-  
-    if (existingEntry) {
-      existingEntry.transactions.push(newTransaction._id);
-    } else {
-      admin.transactions.push({
-        stockist: req.user.id,
-        transactions: [newTransaction._id]
-      });
-    }
-  
-    await admin.save(); // Save changes to the admin object
+
   
     // Add transaction to stockist
     stockist.transactions.push(newTransaction._id);
-    stockist.profitThisMonth += finalProfit;
     await stockist.save();
   
-    // Push transaction to client
-    client.transactions.push(newTransaction._id);
-    await client.save();
   
-    // Send email with the attached PDF (or any file)
-    await mailSender(
-      process.env.MAIL_USER,
-      `NEW Client Transfer Receipt Transaction`,
-      `
-        Name: ${stockist.profile.name}
-        State: ${stockist.profile.address}
-      `,
-      proof
-    );
+    // // Send email with the attached PDF (or any file)
+    // await mailSender(
+    //   process.env.MAIL_USER,
+    //   `NEW Client Transfer Receipt Transaction`,
+    //   `
+    //     Name: ${stockist.profile.name}
+    //     State: ${stockist.profile.address}
+    //   `,
+    //   proof
+    // );
   
     return res.status(200).json({
       success: true,
       message: "Transaction committed",
       newTransaction
     });
-  });
+});
+
 
 
 

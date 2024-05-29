@@ -1,8 +1,8 @@
 const express = require("express");
 const { auth, isAdmin } = require("../middleware/auth");
 const { signUpAdmin, loginAdmin, logout, getUserInfo } = require("../controllers/Auth");
-const { BalanceTransferAdmin, stockTransferAdmin } = require("../controllers/Admin/transaction");
-const { getAllStockistInfo, getStockistInfo, getAllNotifications, getStockAdmin } = require("../controllers/Admin/get");
+const { BalanceTransferAdmin, stockTransferAdmin, confirmTransaction } = require("../controllers/Admin/transaction");
+const { getAllStockistInfo, getStockistInfo, getAllNotifications, getStockAdmin, getTransactions } = require("../controllers/Admin/get");
 const { createProduct, createCategory, updateCategory, deleteCategory, updateProduct, deleteProduct } = require("../controllers/Admin/product");
 const { signUpStk, deleteStockist } = require("../controllers/Admin/stockist");
 const router = express.Router();
@@ -23,6 +23,7 @@ router.route("/delete-stockist/:id").delete(auth , isAdmin , deleteStockist);
 // commiting transaction
 router.route("/commit-bl-transaction-admin").post(auth , isAdmin , BalanceTransferAdmin);
 router.route("/commit-st-transaction-admin").post(auth , isAdmin , stockTransferAdmin);
+router.route("/confirm-transaction").put(auth , isAdmin , confirmTransaction);
 
 
 // get routes
@@ -31,7 +32,7 @@ router.route("/get-single-stockist/:id").get(auth , isAdmin , getStockistInfo);
 router.route("/get-all-notifications").get(auth , isAdmin , getAllNotifications);
 router.route("/load-user").get(auth,getUserInfo);
 router.route("/get-stock-admin").get(auth , isAdmin , getStockAdmin);
-
+router.route("/get-stockist-transactions").post(auth , isAdmin , getTransactions)
 
 
 

@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const transactionSchema = new mongoose.Schema({
+const rejectedTransactionSchema = new mongoose.Schema({
 
     type: {
         type: String,
@@ -87,14 +87,22 @@ const transactionSchema = new mongoose.Schema({
 
     transactionStatus: {
         type: String,
-        enum: ["pending" , "approved" , "rejected"],
-        default: "pending",
+        default: "rejected",
         required: true
-    }
+    },
+
+    rejectionReason : {
+        type: String,
+        required: true
+    },
+
     
 }, { timestamps: true });
 
-module.exports = mongoose.model("Transaction", transactionSchema);
+// TTL index to automatically delete documents after 7 days
+rejectedTransactionSchema.index({ createdAt: 1 }, { expireAfterSeconds: 7 * 24 * 60 * 60 });
+
+module.exports = mongoose.model("RejectedTransaction", rejectedTransactionSchema);
 
 
 

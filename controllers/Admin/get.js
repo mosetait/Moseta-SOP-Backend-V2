@@ -33,7 +33,15 @@ exports.getStockistInfo = asyncHandler( async (req,res) => {
             })
         }
 
-        const stockist = await Stockist.findOne({_id: id}).populate({path: "transactions"}).populate({path: "profile"});
+        const stockist = await Stockist.findOne({_id: id})
+        .populate({path: "transactions"})
+        .populate({path: "profile"})
+        .populate({
+            path: 'rejectedTransactions',
+            populate: {
+              path: 'client'  // This will populate the client field within each transaction
+            }
+        });
 
         if(!stockist){
             return res.status(404).json({
@@ -85,4 +93,28 @@ exports.getStockAdmin = asyncHandler( async (req,res) => {
         stock
     })
 
+})
+
+
+
+
+
+// get transactions of a single stockist
+exports.getTransactions = asyncHandler( async (req,res) => {
+
+    const {stockistId} = req.body;
+    
+    const stockist = await Stockist.findById({_id: stockistId})
+    .populate({
+        path: 'transactions',
+        populate: {
+          path: 'client'  // This will populate the client field within each transaction
+        }
+    });
+
+    return res.status(200).json({
+        message: "Transactions Fetched Successfully.",
+        success: true,
+        transactions: stockist.transactions
+    })
 })
