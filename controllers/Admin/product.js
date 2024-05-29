@@ -9,7 +9,8 @@ const Category = require("../../models/Category");
 exports.createCategory = asyncHandler( async (req,res) => {
 
     const {name , gst} = req.body;
-
+  
+   
     // validations
     if(!name || !gst) {
         return res.status(400).json({

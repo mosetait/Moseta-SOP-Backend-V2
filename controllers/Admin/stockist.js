@@ -20,10 +20,10 @@ exports.signUpStk = asyncHandler( async (req,res) => {
         password,
         special,
         expectedProfit,
-
+        
     } = req.body;
 
-console.log(req.body)
+
 
     // Check if All Details are there or not
     if(special){
