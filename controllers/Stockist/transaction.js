@@ -24,10 +24,10 @@ const asyncHandler = require("../../middleware/asyncHandler")
 // Commit a BL transaction with admin
 exports.BalanceTransferStk = asyncHandler( async (req,res) => {
 
-        const { totalAmount, documentNo } = req.body;
+        const { totalAmount, documentNo, date } = req.body;
 
         // Validation
-        if (!totalAmount || !documentNo) {
+        if (!totalAmount || !documentNo || !date) {
             return res.status(401).json({
                 success: false,
                 message: "Please enter amount and document number."
@@ -89,7 +89,8 @@ exports.BalanceTransferStk = asyncHandler( async (req,res) => {
                 name: fileName,
                 path: uploadPath
             },
-            transactionStatus: "pending"
+            transactionStatus: "pending",
+            date
         };
 
         // creating a transaction
@@ -129,11 +130,11 @@ exports.BalanceTransferStk = asyncHandler( async (req,res) => {
 // commit a CT transaction
 exports.clientTransferStk = asyncHandler( async (req,res) => {
 
-        const {totalAmount , documentNo , clientId} = req.body;
+        const {totalAmount , documentNo , clientId , date} = req.body;
 
 
         // Validation
-        if(!totalAmount || !documentNo || !clientId){
+        if(!totalAmount || !documentNo || !clientId || !date){
             return res.status(401).json({
                 success: false,
                 meessage: "Please enter amount and document number"
@@ -207,7 +208,8 @@ exports.clientTransferStk = asyncHandler( async (req,res) => {
                 path: uploadPath
             },
             client: client._id,
-            transactionStatus: "pending"
+            transactionStatus: "pending",
+            date
         }
 
         // creating a transaction
@@ -263,7 +265,8 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
       clientId, 
       installationCharges, 
       transportationCharges, 
-      products
+      products,
+      date
     } = nestedBody;
   
     // Validation
@@ -345,7 +348,8 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
       },
       productDistribution: products,
       installationCharges,
-      transportationCharges
+      transportationCharges,
+      date
     };
 
   

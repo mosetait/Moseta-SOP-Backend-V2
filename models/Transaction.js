@@ -90,6 +90,11 @@ const transactionSchema = new mongoose.Schema({
         enum: ["pending" , "approved" , "rejected"],
         default: "pending",
         required: true
+    },
+
+    date: {
+        type: Date,
+        required: true
     }
     
 }, { timestamps: true });

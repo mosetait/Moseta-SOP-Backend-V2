@@ -13,11 +13,11 @@ const Client = require("../../models/Client")
 exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
 
 
-        const {stockistId , totalAmount , documentNo} = req.body;
+        const {stockistId , totalAmount , documentNo , date} = req.body;
 
 
         // Validation
-        if(!totalAmount || !documentNo || !stockistId){
+        if(!totalAmount || !documentNo || !stockistId || !date){
             return res.status(401).json({
                 success: false,
                 meessage: "Please enter amount , document number and stockist id."
@@ -81,7 +81,8 @@ exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
                 name: fileName,
                 path: uploadPath
             },
-            transactionStatus: "approved"
+            transactionStatus: "approved",
+            date
         }
 
         // creating a transaction
@@ -153,11 +154,12 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
         totalAmount, 
         documentNo, 
         products,
-        stockistId
+        stockistId,
+        date
     } = nestedBody;
 
     // Validation
-    if (!totalAmount || !documentNo || !stockistId) {
+    if (!totalAmount || !documentNo || !stockistId || !date) {
         return res.status(401).json({
             success: false,
             message: "Please fill required fields."
@@ -220,7 +222,8 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
             path: uploadPath
         },
         productDistribution: products,
-        transactionStatus: "approved"
+        transactionStatus: "approved",
+        date
     };
 
   
