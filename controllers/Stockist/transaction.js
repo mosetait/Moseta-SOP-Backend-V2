@@ -319,20 +319,14 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
     }
   
 
-  
-    // Save the file to the server
+
+
+    // initailize file name
     const fileName = `balance_transfer_proof_${Date.now()}_${proof.name}`;
     const uploadPath = `uploads/${fileName}`;
-    proof.mv(uploadPath, (err) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({
-          success: false,
-          message: "Error while saving file to server."
-        });
-      }
-    });
-  
+
+
+
     // Create the transaction object
     const transactionObj = {
       type: "ST",
@@ -357,9 +351,20 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
   
     // Create a new transaction
     const newTransaction = await Transaction.create(transactionObj);
-  
+    
 
-  
+    // Save the proof to the server
+    proof.mv(uploadPath, (err) => {
+      if (err) {
+        console.error(err);
+        return res.status(500).json({
+          success: false,
+          message: "Error while saving file to server."
+        });
+      }
+    });
+
+
     // Add transaction to stockist
     stockist.transactions.push(newTransaction._id);
     await stockist.save();

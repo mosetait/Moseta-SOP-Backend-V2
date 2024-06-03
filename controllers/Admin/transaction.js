@@ -397,7 +397,7 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
     }
     
 
-
+    // if transaction approved
     if(transactionStatus == "approved"){
 
         // check transaction type
@@ -461,23 +461,28 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
 
 
                 if (productIndex !== -1) {
-                const currentQuantity = stockItem.products[productIndex].quantity;
 
-                if (currentQuantity < quantity) {
+                    const currentQuantity = stockItem.products[productIndex].quantity;
+
+                    if (currentQuantity < quantity) {
+                        return res.status(400).json({
+                        success: false,
+                        message: `Insufficient quantity for product ${product}`
+                        });
+                    }
+
+                    stockItem.products[productIndex].quantity = stockItem.products[productIndex].quantity - quantity;
+                    
+                    if (stockItem.products[productIndex].quantity < 0) {
+                        stockItem.products[productIndex].quantity = 0;
+                    }
+
+                } 
+                else {
                     return res.status(400).json({
-                    success: false,
-                    message: `Insufficient quantity for product ${product}`
+                        success: false,
+                        message: `Product ${String(product?.product?.name)} not found in stock`
                     });
-                }
-                stockItem.products[productIndex].quantity = stockItem.products[productIndex].quantity - quantity;
-                if (stockItem.products[productIndex].quantity < 0) {
-                    stockItem.products[productIndex].quantity = 0;
-                }
-                } else {
-                return res.status(400).json({
-                    success: false,
-                    message: `Product ${String(product)} not found in stock`
-                });
                 }
             }
             }
@@ -512,6 +517,8 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
 
     }
 
+
+    // if transaction rejected
     if(transactionStatus == "rejected") {
 
         const rejectTransaction = {

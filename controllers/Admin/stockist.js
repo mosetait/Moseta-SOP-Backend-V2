@@ -4,103 +4,140 @@ const bcrypt = require("bcrypt");
 const Transaction = require("../../models/Transaction");
 const Profile = require("../../models/Profile");
 const asyncHandler = require("../../middleware/asyncHandler");
+const { uploadImageToCloudinary } = require('../../utils/imageUploader'); 
 
 
 
 
 
-// SignUp / create - STOCKIST
-exports.signUpStk = asyncHandler( async (req,res) => {
 
-      
+
+exports.signUpStk = asyncHandler(async (req, res) => {
+
+  try {
+
     // Destructure fields from the request body
     const {
-        name,
-        username,
-        password,
-        special,
-        expectedProfit,
-        
+      name,
+      username,
+      password,
+      special,
+      expectedProfit,
+      gstNo,
+      address,
+      tradeName,
+      contactNo
     } = req.body;
 
+   
 
-
-    // Check if All Details are there or not
-    if(special){
-
+    // Validations for signing up the stockist
+    if (special) {
       if(!expectedProfit){
         return res.status(403).send({
           success: false,
           message: "If the stockist is special then please provide expected profit.",
-        })
+        });
       }
-
     }
 
-    if (
-        !name ||
-        !username ||
-        !password 
-    ) {
-        return res.status(403).send({
+
+    if (!name || !username || !password || !gstNo || !address || !tradeName || !contactNo) {
+      console.log(req.body)
+      return res.status(403).send({
         success: false,
-        message: "All Fields are required",
-        })
+        message: "All fields are required",
+      });
     }
-
 
     // Check if user already exists
-    const existingStk = await Stockist.findOne({username})
+    const existingStk = await Stockist.findOne({ username });
 
     if (existingStk) {
-        return res.status(400).json({
-            success: false,
-            message: "Stockist already exists. Please sign in to continue.",
-        })
+      return res.status(400).json({
+        success: false,
+        message: "Stockist already exists. Please sign in to continue.",
+      });
     }
 
+    // Validations for setting up the profile
+    const existingProfile = await Profile.findOne({
+      $or: [
+        { gstNo },
+        { contactNo }
+      ]
+    });
 
-    // fetch admin details
-    const admin = await Admin.findOne({_id: req.user.id});
+    if (existingProfile) {
+      return res.status(401).json({
+        success: false,
+        message: "Profile with this information exists."
+      });
+    }
 
-    if(!admin){
+    // Fetch admin details
+    const admin = await Admin.findOne({ _id: req.user.id });
+
+    if (!admin) {
       return res.status(401).json({
         success: false,
         message: "Please login as an admin first"
-      })
+      });
     }
 
-
     // Hash password
-    const hashedPassword = await bcrypt.hash(password , 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    
+    // Create new stockist
     const newStk = await Stockist.create({
       name,
       username,
       password: hashedPassword,
       admin: req.user.id,
       special,
-      expectedProfit : special ? expectedProfit : null
+      expectedProfit: special ? expectedProfit : null
     });
 
 
-    // add this stockist in the admin's model
+    // Create Profile
+    const newProfile = await Profile.create({
+      name,
+      gstNo,
+      address,
+      tradeName,
+      contactNo,
+      profile: newStk._id,
+      profileSetup: true,
+      stockist: newStk._id
+    });
+
+    // Add profile to the stockist
+    newStk.profile = newProfile._id;
+    newStk.profileSetup = true;
+    
+    // Add this stockist to the admin's model
     admin.stockists.push(newStk._id);
+
     await admin.save();
-    
-    
+    await newStk.save();
 
     return res.status(200).json({
-        success: true,
-        newStk,
-        message: "Stockist registered successfully",
-    })
-    
+      success: true,
+      newStk,
+      newProfile,
+      message: "Stockist registered successfully",
+    });
 
-}
+  } 
+  catch (error) {
+    console.log(`Error while signing up and creating profile: ${JSON.stringify(error)}`);
+    return res.status(500).json({
+      success: false,
+      message: `Error while signing up and creating profile: ${error}`
+    });
+  }
+});
 
-)
 
 
 
