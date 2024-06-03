@@ -113,7 +113,7 @@ exports.setupProfile = async (req , res) => {
 
     }
     catch(error){
-        console.log(`Error while creating profile: ${JSON.stringify(error)}`)
+        
         return res.status(500).json({
             success: false,
             message: `Error while creating profile : ${error}`
@@ -208,7 +208,7 @@ exports.updateProfile = async (req, res) => {
         });
 
     } catch (error) {
-        console.log(`Error while updating profile: ${JSON.stringify(error)}`);
+        
         return res.status(500).json({
             success: false,
             message: `Error while updating profile: ${error}`

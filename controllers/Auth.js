@@ -280,7 +280,7 @@ exports.logout = async (req, res) => {
       });
     }
   } catch (error) {
-    console.log(error);
+    
     return res.status(401).json({
       message: 'Error while logging out',
       success: false,

@@ -50,7 +50,7 @@ exports.getAllProducts = asyncHandler( async (req,res) => {
 
 // fetch proof
 exports.fetchProof = asyncHandler( async (req,res) => {
-        console.log("first")
+        
         const { fileName } = req.body;
 
         if(!fileName){

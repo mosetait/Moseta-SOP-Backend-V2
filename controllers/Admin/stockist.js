@@ -43,7 +43,7 @@ exports.signUpStk = asyncHandler(async (req, res) => {
 
 
     if (!name || !username || !password || !gstNo || !address || !tradeName || !contactNo) {
-      console.log(req.body)
+     
       return res.status(403).send({
         success: false,
         message: "All fields are required",
@@ -130,7 +130,7 @@ exports.signUpStk = asyncHandler(async (req, res) => {
 
   } 
   catch (error) {
-    console.log(`Error while signing up and creating profile: ${JSON.stringify(error)}`);
+    
     return res.status(500).json({
       success: false,
       message: `Error while signing up and creating profile: ${error}`
