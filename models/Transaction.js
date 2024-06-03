@@ -76,9 +76,18 @@ const transactionSchema = new mongoose.Schema({
 
 
 
-    productDistribution:{
-        type: Array
-    },
+    productDistribution:[
+        {
+            category: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Category"
+            },
+
+            products:{
+                type: Array
+            }
+        }
+    ],
 
     totalAmount: {
         type: Number,
