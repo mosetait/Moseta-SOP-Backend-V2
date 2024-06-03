@@ -446,10 +446,10 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
             // Remove items from stockist's stock
             for (const productCategory of products) {
 
-
+                
             const { category, products: categoryProducts } = productCategory;
-
-            const stockItem = stockist.stock.find(item => String(item.category) === category);
+                
+            const stockItem = stockist.stock.find(item => String(item.category) === String(category));
                 
             if (!stockItem) {
                 return res.status(400).json({
