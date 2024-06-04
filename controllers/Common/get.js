@@ -1,6 +1,9 @@
 const asyncHandler = require("../../middleware/asyncHandler");
 const Category = require("../../models/Category");
 const Product = require("../../models/Product");
+const Transaction = require("../../models/Transaction");
+const RejectedTransaction = require("../../models/RejectedTransactions");
+const Stockist = require("../../models/Stockist");
 const fs = require('fs');
 const path = require('path');
 
@@ -111,3 +114,94 @@ function getFileContentType(fileName) {
             return 'application/octet-stream'; // Default to binary data
     }
 }
+
+
+
+
+
+// fetch a transaction
+exports.fetchTransaction = asyncHandler( async (req,res) => {
+
+    const {transactionId} = req.body;
+
+    const transaction = await Transaction.findOne({_id: transactionId}).populate({path: "productDistribution.category"});
+
+    if(!transaction){
+        return res.status(404).json({
+            message:  "Transaction not found",
+            success:    false
+        })
+    }
+
+    // check if the transaction belongs to the stockist
+    if(req.user.accountType === "stockist"){
+        const stockist = await Stockist.findOne({_id: req.user.id});
+
+        if(!stockist){
+            return res.status(404).json({
+                message:  "User not found. Please login again",
+                success:    false
+            })
+        }
+
+        if(!stockist.transactions.includes(transactionId)){
+            return res.status(404).json({
+                message:  "This Transaction does not belongs to you.",
+                success:    false
+            })
+        }
+    }
+
+    return res.status(200).json({
+        message: "Transaction Fetched Successfully",
+        success: true,
+        transaction
+    })
+
+})
+
+
+
+
+
+
+// fetch a rejected transaction
+exports.fetchRejectedTransaction = asyncHandler( async (req,res) => {
+
+    const {transactionId} = req.body;
+
+    const transaction = await RejectedTransaction.findOne({_id: transactionId}).populate({path: "productDistribution.category"});
+
+    if(!transaction){
+        return res.status(404).json({
+            message:  "Transaction not found",
+            success:    false
+        })
+    }
+
+    // check if the transaction belongs to the stockist
+    if(req.user.accountType === "stockist"){
+        const stockist = await Stockist.findOne({_id: req.user.id});
+
+        if(!stockist){
+            return res.status(404).json({
+                message:  "User not found. Please login again",
+                success:    false
+            })
+        }
+
+        if(!stockist.rejectedTransactions.includes(transactionId)){
+            return res.status(404).json({
+                message:  "This Transaction does not belongs to you.",
+                success:    false
+            })
+        }
+    }
+
+    return res.status(200).json({
+        message: "Transaction Fetched Successfully",
+        success: true,
+        transaction
+    })
+
+})
