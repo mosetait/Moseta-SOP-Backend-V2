@@ -24,7 +24,7 @@ const asyncHandler = require("../../middleware/asyncHandler")
 // Commit a BL transaction with admin
 exports.BalanceTransferStk = asyncHandler( async (req,res) => {
 
-        const { totalAmount, documentNo, date } = req.body;
+        const { totalAmount, documentNo, date , transferMedium} = req.body;
 
         // Validation
         if (!totalAmount || !documentNo || !date) {
@@ -90,6 +90,7 @@ exports.BalanceTransferStk = asyncHandler( async (req,res) => {
                 path: uploadPath
             },
             transactionStatus: "pending",
+            transferMedium,
             date
         };
 

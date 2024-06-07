@@ -13,7 +13,7 @@ const Client = require("../../models/Client")
 exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
 
 
-        const {stockistId , totalAmount , documentNo , date} = req.body;
+        const {stockistId , totalAmount , documentNo , date , transferMedium} = req.body;
 
 
         // Validation
@@ -82,6 +82,7 @@ exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
                 path: uploadPath
             },
             transactionStatus: "approved",
+            transferMedium,
             date
         }
 
@@ -155,8 +156,11 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
         documentNo, 
         products,
         stockistId,
-        date
+        date,
+        installationCharges,
+        transportationCharges
     } = nestedBody;
+
 
     // Validation
     if (!totalAmount || !documentNo || !stockistId || !date) {
@@ -223,7 +227,9 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
         },
         productDistribution: products,
         transactionStatus: "approved",
-        date
+        date,
+        installationCharges,
+        transportationCharges
     };
 
   

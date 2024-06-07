@@ -101,6 +101,12 @@ const transactionSchema = new mongoose.Schema({
         required: true
     },
 
+    transferMedium: {
+        type: String,
+        enum: ["bank" , "cash" , "NEFT" , "RTGS" , "upi"],
+        required: true
+    },
+
     date: {
         type: Date,
         required: true
