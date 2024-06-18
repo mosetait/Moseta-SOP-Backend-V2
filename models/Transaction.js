@@ -67,11 +67,11 @@ const transactionSchema = new mongoose.Schema({
     },
 
     transportationCharges: {
-        type: Number
+        type: mongoose.Schema.Types.Decimal128
     },
 
     installationCharges: {
-        type: Number
+        type: mongoose.Schema.Types.Decimal128
     },
 
 
@@ -90,8 +90,12 @@ const transactionSchema = new mongoose.Schema({
     ],
 
     totalAmount: {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         required: true
+    },
+
+    balanceAtTheTime: {
+        type: mongoose.Schema.Types.Decimal128,
     },
 
     transactionStatus: {
@@ -104,7 +108,7 @@ const transactionSchema = new mongoose.Schema({
     transferMedium: {
         type: String,
         enum: ["bank" , "cash" , "NEFT" , "RTGS" , "upi"],
-        required: true
+        // required: true
     },
 
     date: {

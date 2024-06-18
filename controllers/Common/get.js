@@ -6,7 +6,8 @@ const RejectedTransaction = require("../../models/RejectedTransactions");
 const Stockist = require("../../models/Stockist");
 const fs = require('fs');
 const path = require('path');
-
+const moment = require('moment'); // Using moment.js for date manipulation
+const mongoose = require("mongoose")
 
 
 
@@ -205,3 +206,65 @@ exports.fetchRejectedTransaction = asyncHandler( async (req,res) => {
     })
 
 })
+
+
+
+
+
+
+
+
+
+// monthly transactions
+
+exports.getTransactionsByMonth = async (req, res) => {
+
+    try {
+        // Extract the month and stockistId parameters from the request
+        const { month, stockistId } = req.body;
+
+        
+        // Validate the month parameter
+        if (!month || isNaN(month) || month < 1 || month > 12) {
+            return res.status(400).json({ message: 'Invalid month parameter' });
+        }
+
+        // Validate the stockistId parameter
+        if (!stockistId) {
+            return res.status(400).json({ message: 'Stockist ID is required' });
+        }
+
+        // Get the current year
+        const year = moment().year();
+
+        // Calculate the start and end dates for the specified month
+        const startDate = moment({ year, month: month - 1, day: 1 }).startOf('day').toDate(); // month is zero-indexed in moment
+        const endDate = moment(startDate).endOf('month').toDate();
+
+
+        // Fetch transactions within the date range
+        const transactions = await Transaction.find({
+            stockist: stockistId,
+            date: {
+                $gte: startDate,
+                $lte: endDate
+            }
+        });
+
+        // Return the last transaction of the previous month and the transactions within the date range
+        return res.status(200).json({ 
+            transactions 
+        });
+    } 
+    catch (error) {
+        return res.status(500).json({ 
+            message: 'Internal server error' ,
+            success: false
+        });
+    }
+};
+
+
+
+
+

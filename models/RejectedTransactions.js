@@ -67,11 +67,11 @@ const rejectedTransactionSchema = new mongoose.Schema({
     },
 
     transportationCharges: {
-        type: Number
+        type: mongoose.Schema.Types.Decimal128
     },
 
     installationCharges: {
-        type: Number
+        type: mongoose.Schema.Types.Decimal128
     },
 
 
@@ -90,7 +90,7 @@ const rejectedTransactionSchema = new mongoose.Schema({
     ],
 
     totalAmount: {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         required: true
     },
 

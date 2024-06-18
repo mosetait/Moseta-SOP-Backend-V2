@@ -56,15 +56,24 @@ exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
         // Save the file to the server
         const fileName = `balance_transfer_proof_${Date.now()}_${proof.name}`;
         const uploadPath = `uploads/${fileName}`;
-        proof.mv(uploadPath, (err) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({
-                    success: false,
-                    message: "Error while saving file to server."
-                });
-            }
-        });
+
+        try {
+            proof.mv(uploadPath, (err) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({
+                        success: false,
+                        message: "Error while saving file to server."
+                    });
+                }
+            });
+        
+        } catch (error) {
+            return res.status(500).json({
+                message: 'Error while saving proof.',
+                success: false
+            });
+        }
 
         // creating transaction variable
         const transactionObj = {
@@ -83,11 +92,16 @@ exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
             },
             transactionStatus: "approved",
             transferMedium,
-            date
+            date,
+            balanceAtTheTime : stockist?.balance?.$numberDecimal
         }
 
         // creating a transaction
         const newTransaction = await Transaction.create(transactionObj);
+
+
+        //update stockist balance
+        stockist.balance = stockist.balance - totalAmount; 
 
 
         // add transaction to admin
@@ -152,7 +166,7 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
     const nestedBody = convertToNestedObject(req.body);
 
     const { 
-        totalAmount, 
+        totalAmount,  
         documentNo, 
         products,
         stockistId,
@@ -160,7 +174,6 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
         installationCharges,
         transportationCharges
     } = nestedBody;
-
 
     // Validation
     if (!totalAmount || !documentNo || !stockistId || !date) {
@@ -200,15 +213,24 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
     // Save the file to the server
     const fileName = `balance_transfer_proof_${Date.now()}_${proof.name}`;
     const uploadPath = `uploads/${fileName}`;
-    proof.mv(uploadPath, (err) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({
-                success: false,
-                message: "Error while saving file to server."
-            });
-        }
-    });
+
+    try{
+        proof.mv(uploadPath, (err) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({
+                    success: false,
+                    message: "Error while saving file to server."
+                });
+            }
+        });
+    }
+    catch(error){
+        return res.status(500).json({
+            message: "Error While Saving Proof",
+            success: false
+        })
+    }
 
     // Creating transaction object
     const transactionObj = {
@@ -228,8 +250,9 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
         productDistribution: products,
         transactionStatus: "approved",
         date,
-        installationCharges,
-        transportationCharges
+        installationCharges: installationCharges ? installationCharges : 0 ,
+        transportationCharges : transportationCharges ? transportationCharges : 0,
+        balanceAtTheTime : stockist?.balance?.$numberDecimal
     };
 
   
@@ -237,6 +260,10 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
     // Creating a transaction
     const newTransaction = await Transaction.create(transactionObj);
 
+
+    //update stockist balance
+    stockist.balance = stockist.balance - totalAmount; 
+    newTransaction.balanceAtTheTime = stockist.balance
   
     // Add transaction to admin
     const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(stockistId));
@@ -284,7 +311,7 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
     });
 
     await stockist.save();
-
+    await newTransaction.save();
 
     // Send email with the attached PDF (or any file)
     await mailSender(
@@ -412,10 +439,9 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
         // check transaction type
         if(transaction.type == "BL" || transaction.type == "CT"){
   
-            await transaction.updateOne({transactionStatus: "approved"});
-
             // add transaction to admin
             const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(stockist._id));
+           
             if (existingEntry) {
                 existingEntry.transactions.push(transaction._id);
             } else {
@@ -431,7 +457,15 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
                 await client.save();
             }
 
+            if(transaction.type == "BL"){
+                stockist.balance = Number(stockist.balance) + Number(transaction.totalAmount);
+            }
+
+            await transaction.updateOne({transactionStatus: "approved"});
+
+
             await admin.save();
+            await stockist.save();
             await transaction.save();
         }
 
@@ -516,6 +550,8 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
             // Push transaction to client
             client.transactions.push(transaction._id);
 
+
+
             await client.save();
             await stockist.save();
             await admin.save();
@@ -569,6 +605,7 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
         await Transaction.findByIdAndDelete(transaction._id);
 
     }
+
 
     return res.status(200).json({
         message: `Transaction ${transactionStatus}`,

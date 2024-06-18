@@ -8,42 +8,42 @@ const productSchema = new mongoose.Schema({
     },
 
     distributorPriceWithoutGst : {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         required: true
     },
 
     retailerPriceWithoutGst : {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         required: true
     },
 
     customerPriceWithoutGst : {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         required: true
     },
 
     mcpWithoutGst: {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         required: true
     },
 
     distributorPriceWithGst : {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         required: true
     },
 
     retailerPriceWithGst : {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         required: true
     },
 
     customerPriceWithGst : {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         required: true
     },
 
     mcpWithGst: {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         required: true
     },
 

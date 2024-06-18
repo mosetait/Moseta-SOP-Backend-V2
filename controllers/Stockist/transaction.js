@@ -64,15 +64,24 @@ exports.BalanceTransferStk = asyncHandler( async (req,res) => {
         // Save the file to the server
         const fileName = `balance_transfer_proof_${Date.now()}_${proof.name}`;
         const uploadPath = `uploads/${fileName}`;
-        proof.mv(uploadPath, (err) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({
-                    success: false,
-                    message: "Error while saving file to server."
-                });
-            }
-        });
+
+        try {
+            proof.mv(uploadPath, (err) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({
+                        success: false,
+                        message: "Error while saving file to server."
+                    });
+                }
+            });
+        
+        } catch (error) {
+            return res.status(500).json({
+                message: 'Error while saving proof.',
+                success: false
+            });
+        }
 
         // creating transaction variable
         const transactionObj = {
@@ -91,11 +100,16 @@ exports.BalanceTransferStk = asyncHandler( async (req,res) => {
             },
             transactionStatus: "pending",
             transferMedium,
-            date
+            date,
+            balanceAtTheTime : Number(stockist?.balance) + Number(totalAmount)
         };
+
 
         // creating a transaction
         const newTransaction = await Transaction.create(transactionObj);
+
+
+
 
         // add transaction to stockist
         stockist.transactions.push(newTransaction._id);
@@ -210,7 +224,8 @@ exports.clientTransferStk = asyncHandler( async (req,res) => {
             },
             client: client._id,
             transactionStatus: "pending",
-            date
+            date,
+            balanceAtTheTime : Number(stockist?.balance)
         }
 
         // creating a transaction
@@ -348,9 +363,10 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
         path: uploadPath
       },
       productDistribution: products,
-      installationCharges,
-      transportationCharges,
-      date
+      installationCharges: installationCharges ? installationCharges : 0 ,
+      transportationCharges : transportationCharges ? transportationCharges : 0 ,
+      date,
+      balanceAtTheTime : Number(stockist?.balance)
     };
 
   

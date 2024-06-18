@@ -17,18 +17,19 @@ const stockItemSchema = new mongoose.Schema({
             type: Number,
         },
         priceBeforeDiscount: {
-            type: Number
+            type: mongoose.Schema.Types.Decimal128
         },
         priceAfterDiscount: {
-            type: Number
+            type: mongoose.Schema.Types.Decimal128
         },
         discount: {
-            type: Number
+            type: mongoose.Schema.Types.Decimal128
         }
     }]
 });
 
 const stockistSchema = new mongoose.Schema({
+
     name: {
         type: String,
         required: true
@@ -42,6 +43,13 @@ const stockistSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+
+    balance: {
+        type: mongoose.Schema.Types.Decimal128,
+        required: true,
+        default: 0
+    },
+
     transactions: {
         type: [mongoose.Schema.Types.ObjectId],
         ref: "Transaction"
@@ -79,13 +87,13 @@ const stockistSchema = new mongoose.Schema({
     },
 
     profitThisMonth: {
-        type: Number,
+        type: mongoose.Schema.Types.Decimal128,
         default: 0
     },
 
     monthlyProfit: [{
         month: { type: String },
-        profit: { type: Number }
+        profit: { type: mongoose.Schema.Types.Decimal128 }
     }],
 
     notifications: {
