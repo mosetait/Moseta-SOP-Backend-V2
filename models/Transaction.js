@@ -111,6 +111,10 @@ const transactionSchema = new mongoose.Schema({
         // required: true
     },
 
+    instruction:{
+        type: String,
+    },
+
     date: {
         type: Date,
         required: true

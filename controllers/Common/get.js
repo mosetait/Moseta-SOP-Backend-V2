@@ -27,6 +27,7 @@ exports.getAllCategories = asyncHandler( async (req,res) => {
 
 
 
+
 // Get products of a category
 exports.getAllProducts = asyncHandler( async (req,res) => {
 

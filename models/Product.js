@@ -47,6 +47,11 @@ const productSchema = new mongoose.Schema({
         required: true
     },
 
+    gst: {
+        type: mongoose.Schema.Types.Decimal128,
+        required: true
+    },
+
     category: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Category"

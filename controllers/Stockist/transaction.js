@@ -101,7 +101,7 @@ exports.BalanceTransferStk = asyncHandler( async (req,res) => {
             transactionStatus: "pending",
             transferMedium,
             date,
-            balanceAtTheTime : Number(stockist?.balance) + Number(totalAmount)
+            balanceAtTheTime : Number(stockist?.balance)
         };
 
 
@@ -196,7 +196,9 @@ exports.clientTransferStk = asyncHandler( async (req,res) => {
         // Save the file to the server
         const fileName = `balance_transfer_proof_${Date.now()}_${proof.name}`;
         const uploadPath = `uploads/${fileName}`;
-        proof.mv(uploadPath, (err) => {
+
+        try {
+          proof.mv(uploadPath, (err) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({
@@ -204,7 +206,14 @@ exports.clientTransferStk = asyncHandler( async (req,res) => {
                     message: "Error while saving file to server."
                 });
             }
-        });
+          });
+        } 
+        catch (error) {
+          return res.status(400).json({
+            success:false,
+            message: "Failed to save file to server."
+          })  
+        }
 
 
         // creating transaction variable
@@ -275,7 +284,7 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
     // Convert the flat request body structure to a nested one
     const nestedBody = convertToNestedObject(req.body);
   
-    const { 
+    const {    
       totalAmount, 
       documentNo, 
       clientId, 
@@ -284,6 +293,8 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
       products,
       date
     } = nestedBody;
+
+
   
     // Validation
     if (!totalAmount || !documentNo || !clientId) {
@@ -345,6 +356,28 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
     const uploadPath = `uploads/${fileName}`;
 
 
+    try {
+      // Save the proof to the server
+      proof.mv(uploadPath, (err) => {
+        if (err) {
+          console.error(err);
+          return res.status(500).json({
+            success: false,
+            message: "Error while saving file to server."
+          });
+        }
+      });
+
+  
+    } catch (error) {
+      return res.status(400).json({
+        message: 'error while saving file',
+        success: false
+      });
+    }
+
+
+    const balanceAtTheTime = Number(stockist?.balance) - Number(totalAmount)
 
     // Create the transaction object
     const transactionObj = {
@@ -366,7 +399,7 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
       installationCharges: installationCharges ? installationCharges : 0 ,
       transportationCharges : transportationCharges ? transportationCharges : 0 ,
       date,
-      balanceAtTheTime : Number(stockist?.balance)
+      balanceAtTheTime ,
     };
 
   
@@ -374,18 +407,7 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
     const newTransaction = await Transaction.create(transactionObj);
     
 
-    // Save the proof to the server
-    proof.mv(uploadPath, (err) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({
-          success: false,
-          message: "Error while saving file to server."
-        });
-      }
-    });
-
-
+    
     // Add transaction to stockist
     stockist.transactions.push(newTransaction._id);
     await stockist.save();
