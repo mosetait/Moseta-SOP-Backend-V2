@@ -94,6 +94,10 @@ const transactionSchema = new mongoose.Schema({
         required: true
     },
 
+    totalAmountBeforeDiscount: {
+        type: mongoose.Schema.Types.Decimal128,
+    },
+
     balanceAtTheTime: {
         type: mongoose.Schema.Types.Decimal128,
     },

@@ -101,7 +101,7 @@ exports.BalanceTransferStk = asyncHandler( async (req,res) => {
             transactionStatus: "pending",
             transferMedium,
             date,
-            balanceAtTheTime : Number(stockist?.balance)
+            balanceAtTheTime : Number(stockist?.balance) + Number(totalAmount)
         };
 
 
@@ -286,6 +286,7 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
   
     const {    
       totalAmount, 
+      totalAmountBeforeDiscount,
       documentNo, 
       clientId, 
       installationCharges, 
@@ -297,7 +298,7 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
 
   
     // Validation
-    if (!totalAmount || !documentNo || !clientId) {
+    if (!totalAmount || !documentNo || !clientId || !totalAmountBeforeDiscount) {
       return res.status(401).json({
         success: false,
         message: "Please fill all mandatory details"
@@ -377,7 +378,8 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
     }
 
 
-    const balanceAtTheTime = Number(stockist?.balance) - Number(totalAmount)
+    const balanceAtTheTime = Number(stockist?.balance) - Number(totalAmountBeforeDiscount);
+    
 
     // Create the transaction object
     const transactionObj = {
@@ -385,6 +387,7 @@ exports.stockTransferStk = asyncHandler(async (req, res) => {
       debitFor: "stockist",
       creditFor: "admin",
       totalAmount,
+      totalAmountBeforeDiscount,
       stockist: stockist._id,
       admin: admin._id,
       client: client._id,

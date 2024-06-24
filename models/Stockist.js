@@ -7,25 +7,27 @@ const stockItemSchema = new mongoose.Schema({
         ref: "Category",
         required: true
     },
-    products: [{
-        product: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Product",
-            required: true
-        },
-        quantity: {
-            type: Number,
-        },
-        priceBeforeDiscount: {
-            type: mongoose.Schema.Types.Decimal128
-        },
-        priceAfterDiscount: {
-            type: mongoose.Schema.Types.Decimal128
-        },
-        discount: {
-            type: mongoose.Schema.Types.Decimal128
+    products: [
+        {
+            product: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Product",
+                required: true
+            },
+            quantity: {
+                type: Number,
+            },
+            priceBeforeDiscount: {
+                type: mongoose.Schema.Types.Decimal128
+            },
+            priceAfterDiscount: {
+                type: mongoose.Schema.Types.Decimal128
+            },
+            discount: {
+                type: mongoose.Schema.Types.Decimal128
+            }
         }
-    }]
+    ]
 });
 
 const stockistSchema = new mongoose.Schema({

@@ -163,12 +163,13 @@ exports.BalanceTransferAdmin = asyncHandler( async (req,res) => {
 
 // commit a ST transaction
 exports.stockTransferAdmin = asyncHandler(async (req, res) => {
-
+ 
     // Convert the flat request body structure to a nested one
     const nestedBody = convertToNestedObject(req.body);
 
     const { 
         totalAmount,  
+        totalAmountBeforeDiscount,
         documentNo, 
         products,
         stockistId,
@@ -177,8 +178,9 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
         transportationCharges
     } = nestedBody;
 
+
     // Validation
-    if (!totalAmount || !documentNo || !stockistId || !date) {
+    if (!totalAmount || !documentNo || !stockistId || !date || !totalAmountBeforeDiscount) {
         return res.status(401).json({
             success: false,
             message: "Please fill required fields."
@@ -240,6 +242,7 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
         debitFor: "admin",
         creditFor: "stockist",
         totalAmount,
+        totalAmountBeforeDiscount,
         stockist: stockist._id,
         admin: admin._id,
         sender: "admin",
@@ -336,7 +339,6 @@ exports.stockTransferAdmin = asyncHandler(async (req, res) => {
 
 
 
-
 function convertToNestedObject(data) {
     const result = {};
   
@@ -363,60 +365,9 @@ function convertToNestedObject(data) {
 
 
 
-// Helper function to add transaction to admin
-const addTransactionToAdmin = async (admin, stockistId, transactionId, session) => {
-    const existingEntry = admin.transactions.find(entry => String(entry.stockist) === String(stockistId));
-    if (existingEntry) {
-        existingEntry.transactions.push(transactionId);
-    } else {
-        admin.transactions.push({
-            stockist: stockistId,
-            transactions: [transactionId]
-        });
-    }
-    await admin.save({ session });
-};
 
 
 
-
-// Helper function to find and update stock for a category
-const findAndUpdateStockForCategory = (stockist, category, categoryProducts) => {
-    const stockItem = stockist.stock.find(item => String(item.category) === String(category));
-
-    if (!stockItem) {
-        throw new Error(`No stock found for category ${category}`);
-    }
-
-    for (const { product, quantity } of categoryProducts) {
-        const productIndex = stockItem.products.findIndex(p => String(p.product) === product._id);
-
-        if (productIndex === -1) {
-            throw new Error(`Product ${String(product?.product?.name)} not found in stock`);
-        }
-
-        const currentQuantity = stockItem.products[productIndex].quantity;
-        if (currentQuantity < quantity) {
-            throw new Error(`Insufficient quantity for product ${product}`);
-        }
-
-        stockItem.products[productIndex].quantity -= quantity;
-
-        if (stockItem.products[productIndex].quantity < 0) {
-            stockItem.products[productIndex].quantity = 0;
-        }
-    }
-};
-
-
-
-
-
-
-
-
-
-// approve a transaction
 exports.confirmTransaction = asyncHandler(async (req, res) => {
 
     const { transactionId, transactionStatus, rejectionReason } = req.body;
@@ -428,12 +379,10 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
         });
     }
 
-    // Use session for transactions
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-        // Find transaction
         const transaction = await Transaction.findById(transactionId)
             .populate('admin')
             .populate('stockist')
@@ -447,50 +396,43 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
             });
         }
 
-        // Find stockist
         const stockist = await Stockist.findById(transaction.stockist).session(session);
         if (!stockist) {
             return res.status(404).json({
-                message: "Stockist not found",
-                success: false
+                success: false,
+                message: "Stockist not found"
             });
         }
 
-        // Find admin
         const admin = await Admin.findById(stockist.admin).session(session);
         if (!admin) {
             return res.status(404).json({
-                message: "Admin not found",
-                success: false
+                success: false,
+                message: "Admin not found"
             });
         }
 
         let client;
-        // Find client if necessary
-        if (transaction.type == "CT" || transaction.type == "ST") {
+        if (transaction.type === "CT" || transaction.type === "ST") {
             client = await Client.findById(transaction.client._id).session(session);
             if (!client) {
                 return res.status(404).json({
-                    message: "Client not found.",
-                    success: false
+                    success: false,
+                    message: "Client not found."
                 });
             }
         }
 
-        // If transaction approved
-        if (transactionStatus == "approved") {
-
-            if (transaction.type == "BL" || transaction.type == "CT") {
-                // Add transaction to admin
+        if (transactionStatus === "approved") {
+            if (transaction.type === "BL" || transaction.type === "CT") {
                 await addTransactionToAdmin(admin, stockist._id, transaction._id, session);
 
                 if (transaction.type === "CT") {
-                    // Push transaction to client
                     client.transactions.push(transaction._id);
                     await client.save({ session });
                 }
 
-                if (transaction.type == "BL") {
+                if (transaction.type === "BL") {
                     stockist.balance = Number(stockist.balance) + Number(transaction.totalAmount);
                 }
 
@@ -498,54 +440,54 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
                 await stockist.save({ session });
                 await transaction.save({ session });
             } 
-            else if (transaction.type == "ST") {
+            else if (transaction.type === "ST") {
 
                 let totalProfit = 0;
-
                 const products = transaction.productDistribution;
+                let priceAfterDiscountToMinusFromTheStockistBalance = 0;
 
-                // Remove items from stockist's stock and calculate profit
                 for (const productCategory of products) {
+
                     const { category, products: categoryProducts } = productCategory;
 
-                    for (const { product, quantity , priceAfterDiscount} of categoryProducts) {
+                    for (const { product, quantity, priceAfterDiscount } of categoryProducts) {
+                        const stockCategory = stockist.stock.find(item => item.category.equals(category));
+                        if (!stockCategory) {
+                            throw new Error(`Category ${category} not found in stockist's stock`);
+                        }
+                            
+                        const stockItem = stockCategory.products.find(item => item.product.equals(product._id));
+                        if (!stockItem) {
+                            throw new Error(`Product ${product} not found in category ${category} of stockist's stock`);
+                        }
 
-                        // Calculate profit for each product
                         const gstFactor = Number(100) / (Number(100) + Number(product.gst.$numberDecimal));
                         const baseAmount1 = (priceAfterDiscount * gstFactor);
                         const baseAmount2 = (baseAmount1 / 1.11);
-
                         const profit = (baseAmount1 - baseAmount2);
                         totalProfit += profit * quantity;
-                        
+                        priceAfterDiscountToMinusFromTheStockistBalance += Number(stockItem.priceAfterDiscount) * quantity;
+
+                        // Update stock quantity
+                        stockItem.quantity -= quantity;
                     }
-                    findAndUpdateStockForCategory(stockist, category, categoryProducts);
                 }
 
-                // Add transaction to admin
                 await addTransactionToAdmin(admin, stockist._id, transaction._id, session);
-
-                // Update profit of stockist
                 const existingProfit = stockist.profitThisMonth ? stockist.profitThisMonth.toString() : "0";
-                const updatedProfit = Decimal128.fromString((parseFloat(existingProfit) + totalProfit).toString());
+                const updatedProfit = Number(existingProfit) + Number(totalProfit);
                 stockist.profitThisMonth = updatedProfit;
 
-                // Reduce stockist balance
-                stockist.balance = Number(stockist.balance) - Number(transaction.totalAmount);
+                stockist.balance = Number(stockist.balance) - priceAfterDiscountToMinusFromTheStockistBalance;
 
                 await stockist.save({ session });
-
-                // Push transaction to client
                 client.transactions.push(transaction._id);
                 await client.save({ session });
-
                 await transaction.updateOne({ transactionStatus: "approved" }, { session });
             }
         }
 
-        // If transaction rejected
-        if (transactionStatus == "rejected") {
-
+        if (transactionStatus === "rejected") {
             const rejectTransaction = {
                 type: transaction.type,
                 debitFor: transaction.debitFor,
@@ -565,16 +507,12 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
                 installationCharges: transaction.installationCharges || "",
                 transportationCharges: transaction.transportationCharges || "",
                 rejectionReason: rejectionReason,
-                instruction: transaction.instruction ? transaction.instruction : null 
+                instruction: transaction.instruction ? transaction.instruction : null
             };
 
-            // Create new rejected transaction
             const newRejectedTransaction = await RejectedTransactions.create(rejectTransaction, { session });
-
-            // Push that transaction in stockist's rejected transactions array
             stockist.rejectedTransactions.push(newRejectedTransaction._id);
 
-            // Remove transaction from stockist's transaction array
             await Stockist.updateOne(
                 { _id: stockist._id },
                 { $pull: { transactions: transaction._id } },
@@ -582,25 +520,20 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
             );
 
             await stockist.save({ session });
-
-            // Delete transaction
             await Transaction.findByIdAndDelete(transaction._id, { session });
         }
 
-        // Commit the transaction
         await session.commitTransaction();
         session.endSession();
 
         return res.status(200).json({
-            message: `Transaction ${transactionStatus}`,
-            success: true
+            success: true,
+            message: `Transaction ${transactionStatus}`
         });
-    } 
-    catch (error) {
-        // Abort the transaction in case of error
+    } catch (error) {
         await session.abortTransaction();
         session.endSession();
-        console.log(error)
+        console.error("Transaction failed: ", error);
         return res.status(500).json({
             success: false,
             message: "Transaction failed.",
@@ -609,4 +542,23 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
     }
 });
 
+const addTransactionToAdmin = async (admin, stockistId, transactionId, session) => {
+    admin.transactions.push({ stockist: stockistId, transaction: transactionId });
+    await admin.save({ session });
+};
 
+const findAndUpdateStockForCategory = async (stockist, category, categoryProducts) => {
+    const stockCategory = stockist.stock.find(item => item.category.equals(category));
+    if (!stockCategory) {
+        throw new Error(`Category ${category} not found in stockist's stock`);
+    }
+
+    for (const { product, quantity } of categoryProducts) {
+        const stockItem = stockCategory.products.find(item => item.product.equals(product));
+        if (stockItem) {
+            stockItem.quantity -= quantity;
+        } else {
+            throw new Error(`Product ${product} not found in category ${category} of stockist's stock`);
+        }
+    }
+};
