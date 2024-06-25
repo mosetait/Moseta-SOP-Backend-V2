@@ -4,32 +4,31 @@ const transactionSchema = new mongoose.Schema({
 
     type: {
         type: String,
-        enum: ["BL" , "ST" , "CT" , "PI"],
+        enum: ["BL", "ST", "CT", "PI"],
         required: true 
     },
 
     debitFor:{
         type: String,
-        enum: ["admin" , "stockist"],
+        enum: ["admin", "stockist"],
         required: true,
     },
 
     creditFor: {
         type: String,
-        enum: ["admin" , "stockist"],
+        enum: ["admin", "stockist"],
         required: true,
     },
 
     sender: {
         type: String,
-        enum: ["admin" , "stockist"],
+        enum: ["admin", "stockist"],
         required: true
     },
 
-
     receiver: {
         type: String,
-        enum: ["admin" , "stockist" , "client"],
+        enum: ["admin", "stockist", "client"],
         required: true
     },
 
@@ -45,15 +44,14 @@ const transactionSchema = new mongoose.Schema({
 
     stockist: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Stockist", // Reference to the Stockist model
-        required: true // Reference to the stockist involved in the transaction
+        ref: "Stockist",
+        required: true 
     },
 
     client: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Client", 
     },
-
 
     file: {
         name: {
@@ -74,8 +72,6 @@ const transactionSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.Decimal128
     },
 
-
-
     productDistribution:[
         {
             category: {
@@ -94,7 +90,7 @@ const transactionSchema = new mongoose.Schema({
         required: true
     },
 
-    totalAmountBeforeDiscount: {
+    totalBillingAmount: {
         type: mongoose.Schema.Types.Decimal128,
     },
 
@@ -104,19 +100,14 @@ const transactionSchema = new mongoose.Schema({
 
     transactionStatus: {
         type: String,
-        enum: ["pending" , "approved" , "rejected"],
+        enum: ["pending", "approved", "rejected"],
         default: "pending",
         required: true
     },
 
     transferMedium: {
         type: String,
-        enum: ["bank" , "cash" , "NEFT" , "RTGS" , "upi"],
-        // required: true
-    },
-
-    instruction:{
-        type: String,
+        enum: ["bank", "cash", "NEFT", "RTGS", "upi"],
     },
 
     date: {
@@ -127,14 +118,3 @@ const transactionSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 module.exports = mongoose.model("Transaction", transactionSchema);
-
-
-
-
-
-
-
-
-
-
-
