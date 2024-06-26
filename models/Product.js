@@ -52,6 +52,14 @@ const productSchema = new mongoose.Schema({
         required: true
     },
 
+    newPriceWithoutGst:{
+        type: mongoose.Schema.Types.Decimal128,
+    },
+
+    newPriceWithGst:{
+        type: mongoose.Schema.Types.Decimal128,
+    },
+
     category: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Category"

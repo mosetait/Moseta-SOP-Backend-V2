@@ -217,14 +217,12 @@ exports.fetchRejectedTransaction = asyncHandler( async (req,res) => {
 
 
 // monthly transactions
-
 exports.getTransactionsByMonth = async (req, res) => {
-
+    
     try {
         // Extract the month and stockistId parameters from the request
         const { month, stockistId } = req.body;
 
-        
         // Validate the month parameter
         if (!month || isNaN(month) || month < 1 || month > 12) {
             return res.status(400).json({ message: 'Invalid month parameter' });
@@ -235,35 +233,60 @@ exports.getTransactionsByMonth = async (req, res) => {
             return res.status(400).json({ message: 'Stockist ID is required' });
         }
 
-        // Get the current year
-        const year = moment().year();
+        // Get the current year and previous month
+        const currentYear = moment().year();
+        const currentMonth = moment().month(); // moment months are zero-indexed
+        const previousMonth = currentMonth === 0 ? 11 : currentMonth - 1; // Adjust for January case
 
         // Calculate the start and end dates for the specified month
-        const startDate = moment({ year, month: month - 1, day: 1 }).startOf('day').toDate(); // month is zero-indexed in moment
+        const startDate = moment({ year: currentYear, month: month - 1, day: 1 }).startOf('day').toDate(); // month is zero-indexed in moment
         const endDate = moment(startDate).endOf('month').toDate();
 
+        // Calculate the start and end dates for the previous month
+        const prevMonthStartDate = moment({ year: currentYear, month: previousMonth, day: 1 }).startOf('day').toDate();
+        const prevMonthEndDate = moment(prevMonthStartDate).endOf('month').toDate();
 
-        // Fetch transactions within the date range
+        // Find the last transaction of the previous month
+        const lastTransactionPrevMonth = await Transaction.findOne({
+            stockist: stockistId,
+            date: {
+                $lt: startDate // Find transactions before the start of the current month
+            }
+        }).sort({ date: -1 }).limit(1);
+
+        // Fetch transactions within the date range for the specified month, excluding type "CT"
+        // Also fetch "ST" transactions where sender is "stockist"
         const transactions = await Transaction.find({
             stockist: stockistId,
+            $or: [
+                { type: { $ne: "CT" } }, // Exclude transactions where type is "CT"
+                { type: "ST", sender: "stockist" } // Include "ST" transactions where sender is "stockist"
+            ],
             date: {
                 $gte: startDate,
                 $lte: endDate
             }
         });
 
-        // Return the last transaction of the previous month and the transactions within the date range
-        return res.status(200).json({ 
-            transactions 
+        
+        // Return the last transaction of the previous month and the filtered transactions
+        return res.status(200).json({
+            lastTransactionPrevMonth,
+            transactions
         });
-    } 
-    catch (error) {
-        return res.status(500).json({ 
-            message: 'Internal server error' ,
-            success: false
-        });
+    } catch (error) {
+        console.error(error);
+        return res.status(500).json({ message: 'Internal server error', success: false });
     }
 };
+
+
+
+
+
+
+
+
 
 
 

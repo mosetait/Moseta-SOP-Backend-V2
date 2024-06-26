@@ -8,11 +8,11 @@ const Category = require("../../models/Category");
 // create category
 exports.createCategory = asyncHandler( async (req,res) => {
 
-    const {name , gst} = req.body;
+    const {name} = req.body;
   
    
     // validations
-    if(!name || !gst) {
+    if(!name) {
         return res.status(400).json({
             message: "Please fill all fields",
             success: false
@@ -30,7 +30,7 @@ exports.createCategory = asyncHandler( async (req,res) => {
     }
 
 
-    const newCategory = await Category.create({name , gst});
+    const newCategory = await Category.create({name});
 
     return res.status(200).json({
         message: "Category created successfully",
@@ -46,10 +46,10 @@ exports.createCategory = asyncHandler( async (req,res) => {
 // update category
 exports.updateCategory = asyncHandler( async (req,res) => {
 
-    const {id , name , gst} = req.body;
+    const {id , name } = req.body;
 
     // validations
-    if(!name || !gst || !id) {
+    if(!name || !id) {
         return res.status(400).json({
             message: "Please fill all fields",
             success: false
@@ -67,7 +67,7 @@ exports.updateCategory = asyncHandler( async (req,res) => {
     }
 
 
-    const updateCategory = await Category.findByIdAndUpdate({_id: id},{name , gst} , {new: true});
+    const updateCategory = await Category.findByIdAndUpdate({_id: id},{name} , {new: true});
 
     return res.status(200).json({
         message: "Category created successfully",
@@ -131,11 +131,13 @@ exports.createProduct = asyncHandler( async (req,res) => {
 
     const {
         name,
+        gst,
         distributorPriceWithoutGst,
         retailerPriceWithoutGst,
         customerPriceWithoutGst,
         mcpWithoutGst,
-        categoryId
+        categoryId,
+        newPriceWithoutGst,
     } = req.body;
 
 
@@ -146,7 +148,8 @@ exports.createProduct = asyncHandler( async (req,res) => {
         !retailerPriceWithoutGst ||
         !customerPriceWithoutGst ||
         !mcpWithoutGst ||
-        !categoryId
+        !categoryId || 
+        !gst
     ){
         return res.status(206).json({
             message : "Please provide all the fields",
@@ -179,12 +182,11 @@ exports.createProduct = asyncHandler( async (req,res) => {
 
 
     // calculating price after gst
-    const gst = category.gst;
-
-    const distributorPriceWithGst = Math.floor(distributorPriceWithoutGst * ((gst+100) / 100));
-    const retailerPriceWithGst = Math.floor(retailerPriceWithoutGst * ((gst+100) / 100));
-    const customerPriceWithGst = Math.floor(customerPriceWithoutGst * ((gst+100) / 100));
-    const mcpWithGst = Math.floor(mcpWithoutGst * ((gst+100) / 100));
+    const distributorPriceWithGst = (distributorPriceWithoutGst * ((Number(gst)+100) / 100)).toFixed(2);
+    const retailerPriceWithGst = (retailerPriceWithoutGst * ((Number(gst)+100) / 100)).toFixed(2);
+    const customerPriceWithGst = (customerPriceWithoutGst * ((Number(gst)+100) / 100)).toFixed(2);
+    const mcpWithGst = (mcpWithoutGst * ((Number(gst)+100) / 100)).toFixed(2);
+    const newPriceWithGst = (newPriceWithoutGst * ((Number(gst)+100) / 100)).toFixed(2);
 
 
     // create new product
@@ -198,8 +200,12 @@ exports.createProduct = asyncHandler( async (req,res) => {
         retailerPriceWithGst,
         customerPriceWithGst,
         mcpWithGst,
-        category: categoryId
+        gst,
+        category: categoryId,
+        newPriceWithGst: newPriceWithoutGst ?  newPriceWithGst : null,
+        newPriceWithoutGst: newPriceWithoutGst ?  newPriceWithoutGst : null
     })
+
 
     
 
@@ -230,6 +236,7 @@ exports.updateProduct = asyncHandler( async (req,res) => {
 
     const {
         name,
+        gst,
         distributorPriceWithoutGst,
         retailerPriceWithoutGst,
         customerPriceWithoutGst,
@@ -288,8 +295,6 @@ exports.updateProduct = asyncHandler( async (req,res) => {
 
 
     // calculating price after gst
-    const gst = category.gst;
-
     const distributorPriceWithGst = Math.floor(distributorPriceWithoutGst * ((gst+100) / 100));
     const retailerPriceWithGst = Math.floor(retailerPriceWithoutGst * ((gst+100) / 100));
     const customerPriceWithGst = Math.floor(customerPriceWithoutGst * ((gst+100) / 100));
@@ -306,6 +311,7 @@ exports.updateProduct = asyncHandler( async (req,res) => {
         distributorPriceWithGst,
         retailerPriceWithGst,
         customerPriceWithGst,
+        gst,
         mcpWithGst,
     })
 

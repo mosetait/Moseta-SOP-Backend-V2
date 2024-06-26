@@ -12,10 +12,6 @@ const categorySchema = new mongoose.Schema({
         ref: "Product"
     },
 
-    gst: {
-        type: Number,
-        required: true,
-    }
 
 
 }, {timestamps:true});
