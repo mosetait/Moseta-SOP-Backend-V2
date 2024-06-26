@@ -502,7 +502,7 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
                 totalAmount: transaction.totalAmount,
                 stockist: transaction.stockist._id,
                 admin: transaction.admin._id,
-                client: transaction.client._id,
+                client: transaction.client ? transaction.client._id : null,
                 sender: transaction.sender,
                 receiver: transaction.receiver,
                 documentNo: transaction.documentNo,
@@ -511,13 +511,14 @@ exports.confirmTransaction = asyncHandler(async (req, res) => {
                     path: transaction.file.path
                 },
                 productDistribution: transaction.productDistribution,
-                installationCharges: transaction.installationCharges || "",
-                transportationCharges: transaction.transportationCharges || "",
+                installationCharges: transaction.installationCharges || 0,
+                transportationCharges: transaction.transportationCharges || 0,
                 rejectionReason: rejectionReason,
                 instruction: transaction.instruction ? transaction.instruction : null
             };
 
-            const newRejectedTransaction = await RejectedTransactions.create(rejectTransaction, { session });
+            const newRejectedTransaction = await RejectedTransactions.create(rejectTransaction);
+
             stockist.rejectedTransactions.push(newRejectedTransaction._id);
 
             await Stockist.updateOne(
